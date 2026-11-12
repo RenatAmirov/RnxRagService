@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#20243b">
+  <title>Rnx RAG — База знаний</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" type="module"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar" aria-label="Документы">
+      <a class="brand" href="/" aria-label="Rnx RAG, главная">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>Rnx<span class="brand-accent">RAG</span></span>
+      </a>
+
+      <div class="library">
+        <div class="library-title">
+          <h2>Документы</h2>
+          <span id="document-count" class="document-count">0</span>
+        </div>
+        <button id="upload-button" class="upload-button" type="button">
+          <span class="icon icon-plus" aria-hidden="true"></span> Добавить файлы
+        </button>
+        <input id="file-input" type="file" accept=".pdf,.txt,.md" multiple hidden>
+        <div class="drop-zone" id="drop-zone">
+          <span class="icon icon-upload" aria-hidden="true">↑</span>
+          <span>Перетащите файлы сюда</span>
+          <small>PDF, TXT, MD · до 20 МБ</small>
+        </div>
+        <div id="file-feedback" class="file-feedback" role="status" hidden></div>
+        <ul id="document-list" class="document-list" aria-label="Загруженные документы"></ul>
+      </div>
+
+      <div class="sidebar-footer">
+        <span class="storage-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+        <div><strong>Хранилище</strong><small>SQLite на этом устройстве</small></div>
+      </div>
+    </aside>
+    <button class="scrim" id="scrim" type="button" aria-label="Закрыть документы" hidden></button>
+
+    <main class="workspace" id="workspace">
+      <header class="topbar">
+        <div class="page-title">
+          <button class="mobile-toggle" id="mobile-toggle" type="button" aria-label="Открыть документы" aria-controls="sidebar" aria-expanded="false">
+            <span class="icon icon-menu" aria-hidden="true"></span>
+          </button>
+          <h1>База знаний</h1>
+        </div>
+        <div class="topbar-actions">
+          <button id="clear-chat" type="button" class="quiet-button" hidden>
+            <span class="icon icon-plus" aria-hidden="true"></span> Новый чат
+          </button>
+          <span class="mode" id="mode"><span class="status-dot"></span><span id="mode-label">Подключение</span></span>
+        </div>
+      </header>
+
+      <div class="viewport" id="viewport">
+        <div class="content-width">
+          <section class="welcome" id="welcome" aria-labelledby="welcome-title">
+            <div class="hero">
+              <div class="hero-copy">
+                <div class="hero-symbol" aria-hidden="true"><i></i><i></i></div>
+                <h2 id="welcome-title">Вопросы к вашим<br>документам</h2>
+                <p>Загрузите файлы и задавайте вопросы по их содержимому. В ответах будут ссылки на исходные фрагменты.</p>
+              </div>
+              <div class="hero-art" aria-hidden="true">
+                <i class="orbit orbit-one"></i><i class="orbit orbit-two"></i>
+                <i class="art-point point-one"></i><i class="art-point point-two"></i><i class="art-point point-three"></i>
+                <div class="paper paper-back"></div><div class="paper paper-middle"></div>
+                <div class="paper paper-front"><i></i><i></i><i></i><i></i></div>
+                <div class="art-spark"><i></i></div>
+              </div>
+            </div>
+            <div class="demo">
+              <div class="demo-icon"><span class="icon icon-file" aria-hidden="true"></span></div>
+              <div class="demo-copy">
+                <h3>Попробуйте на примере</h3>
+                <p>Короткий документ о настройке доступа к VPN</p>
+                <p id="demo-status" role="status" hidden></p>
+              </div>
+              <button id="demo-button" class="demo-button" type="button">Добавить пример <span aria-hidden="true">↗</span></button>
+            </div>
+          </section>
+          <section id="messages" class="messages" aria-label="Вопросы и ответы" role="log" aria-live="polite" hidden></section>
+        </div>
+      </div>
+
+      <div class="composer-wrap">
+        <div class="content-width">
+          <form class="composer" id="ask-form">
+            <label class="sr-only" for="question">Ваш вопрос</label>
+            <textarea id="question" rows="1" maxlength="1000" placeholder="Задайте вопрос по документам…" required></textarea>
+            <div class="composer-controls">
+              <div class="scope">
+                <span class="icon icon-stack" aria-hidden="true"></span>
+                <label class="sr-only" for="scope">Область поиска</label>
+                <select id="scope"><option value="">Все документы</option></select>
+              </div>
+              <button id="send-button" class="send-button" type="submit" aria-label="Отправить вопрос" disabled>
+                <span aria-hidden="true">↑</span>
+              </button>
+            </div>
+          </form>
+          <p class="composer-hint" id="composer-hint">Enter — отправить <span>·</span> Shift + Enter — новая строка</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="source-dialog" aria-labelledby="source-title">
+    <div class="dialog-head">
+      <div><p id="source-meta"></p><h2 id="source-title">Фрагмент документа</h2></div>
+      <form method="dialog"><button class="close-button" aria-label="Закрыть" type="submit">×</button></form>
+    </div>
+    <div id="source-text" class="source-text"></div>
+  </dialog>
+
+  <dialog id="delete-dialog" aria-labelledby="delete-title">
+    <div class="dialog-head">
+      <h2 id="delete-title">Удалить документ?</h2>
+      <form method="dialog"><button class="close-button" aria-label="Закрыть" type="submit">×</button></form>
+    </div>
+    <p class="delete-copy" id="delete-name"></p>
+    <form class="dialog-actions" method="dialog">
+      <button class="quiet-button" value="cancel" autofocus>Отмена</button>
+      <button class="delete-button" value="delete">Удалить</button>
+    </form>
+  </dialog>
+</body>
+</html>
